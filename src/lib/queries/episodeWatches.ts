@@ -29,6 +29,8 @@ export function useShowEpisodeWatches(tmdbShowId: number) {
 export interface ShowWatchStats {
   count: number
   lastWatchedAt: string | null
+  /** "{season}-{episode}" keys, for computing which episode to watch next. */
+  watchedKeys: Set<string>
 }
 
 export function useEpisodeWatchStats(tmdbShowIds: number[]): Record<number, ShowWatchStats> {
@@ -42,7 +44,8 @@ export function useEpisodeWatchStats(tmdbShowIds: number[]): Record<number, Show
             (max, r) => (!max || r.watched_at > max ? r.watched_at : max),
             null,
           )
-          return [id, { count: rows.length, lastWatchedAt }]
+          const watchedKeys = new Set(rows.map((r) => `${r.season_number}-${r.episode_number}`))
+          return [id, { count: rows.length, lastWatchedAt, watchedKeys }]
         }),
       ) as Record<number, ShowWatchStats>,
   })

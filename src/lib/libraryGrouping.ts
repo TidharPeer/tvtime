@@ -1,35 +1,48 @@
-import type { ShowWatchStats } from '@/lib/queries/episodeWatches'
-import type { UserShowRow } from '@/types/db'
+import type { ShowStatus, UserShowRow } from '@/types/db'
+import type { TmdbShowDetails } from '@/types/tmdb'
 
 export const STALE_WATCHING_DAYS = 30
 
-export interface GroupedLibrary {
-  main: UserShowRow[]
-  staleWatching: UserShowRow[]
+export interface EnrichedShow {
+  userShow: UserShowRow
+  show: TmdbShowDetails | undefined
+  watchedCount: number
+  lastWatchedAt: string | null
+  /** Stored status, except a fully-watched show always reads as 'completed' — never overrides an explicit dropped/on_hold. */
+  effectiveStatus: ShowStatus
 }
 
-function isStaleWatching(show: UserShowRow, stats: ShowWatchStats | undefined, now: Date): boolean {
-  if (show.status !== 'watching') return false
-  if (!stats?.lastWatchedAt) return true
-  const daysSince = (now.getTime() - Date.parse(stats.lastWatchedAt)) / 86_400_000
+export function getEffectiveStatus(
+  status: ShowStatus,
+  watchedCount: number,
+  totalEpisodes: number | undefined,
+): ShowStatus {
+  if (status === 'dropped' || status === 'on_hold') return status
+  if (totalEpisodes && totalEpisodes > 0 && watchedCount >= totalEpisodes) return 'completed'
+  return status
+}
+
+export interface GroupedLibrary {
+  main: EnrichedShow[]
+  staleWatching: EnrichedShow[]
+}
+
+function isStaleWatching(entry: EnrichedShow, now: Date): boolean {
+  if (entry.effectiveStatus !== 'watching') return false
+  if (!entry.lastWatchedAt) return true
+  const daysSince = (now.getTime() - Date.parse(entry.lastWatchedAt)) / 86_400_000
   return daysSince >= STALE_WATCHING_DAYS
 }
 
-function byMostRecentlyWatched(stats: Record<number, ShowWatchStats>) {
-  return (a: UserShowRow, b: UserShowRow) =>
-    (stats[b.tmdb_show_id]?.lastWatchedAt ?? '').localeCompare(stats[a.tmdb_show_id]?.lastWatchedAt ?? '')
+function byMostRecentlyWatched(a: EnrichedShow, b: EnrichedShow): number {
+  return (b.lastWatchedAt ?? '').localeCompare(a.lastWatchedAt ?? '')
 }
 
-export function groupAndSortUserShows(
-  shows: UserShowRow[],
-  watchStats: Record<number, ShowWatchStats>,
-  now: Date = new Date(),
-): GroupedLibrary {
-  const main: UserShowRow[] = []
-  const staleWatching: UserShowRow[] = []
-  for (const show of shows) {
-    ;(isStaleWatching(show, watchStats[show.tmdb_show_id], now) ? staleWatching : main).push(show)
+export function groupAndSortUserShows(shows: EnrichedShow[], now: Date = new Date()): GroupedLibrary {
+  const main: EnrichedShow[] = []
+  const staleWatching: EnrichedShow[] = []
+  for (const entry of shows) {
+    ;(isStaleWatching(entry, now) ? staleWatching : main).push(entry)
   }
-  const cmp = byMostRecentlyWatched(watchStats)
-  return { main: main.sort(cmp), staleWatching: staleWatching.sort(cmp) }
+  return { main: main.sort(byMostRecentlyWatched), staleWatching: staleWatching.sort(byMostRecentlyWatched) }
 }

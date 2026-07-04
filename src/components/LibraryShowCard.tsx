@@ -45,10 +45,12 @@ export function LibraryShowCard({
   show,
   status,
   watchedCount,
+  nextEpisodeLabel,
 }: {
   show: TmdbShowDetails
   status: ShowStatus
   watchedCount: number
+  nextEpisodeLabel: string | null
 }) {
   return (
     <Card to={`/show/${show.id}`}>
@@ -56,10 +58,12 @@ export function LibraryShowCard({
       <Info>
         <Title>{show.name}</Title>
         <StatusBadge status={status} />
-        <ProgressBar value={watchedCount} max={show.number_of_episodes} />
-        <ProgressLabel>
-          {watchedCount}/{show.number_of_episodes} episodes
-        </ProgressLabel>
+        {status !== 'completed' && (
+          <>
+            <ProgressBar value={watchedCount} max={show.number_of_episodes} />
+            <ProgressLabel>{nextEpisodeLabel ?? `${watchedCount}/${show.number_of_episodes} episodes`}</ProgressLabel>
+          </>
+        )}
       </Info>
     </Card>
   )

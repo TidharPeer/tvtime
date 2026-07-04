@@ -6,13 +6,14 @@ import { LibraryShowCard } from '@/components/LibraryShowCard'
 import { UpcomingList } from '@/components/UpcomingList'
 import { Button } from '@/components/ui/button'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
-import { groupAndSortUserShows } from '@/lib/libraryGrouping'
+import { getEffectiveStatus, groupAndSortUserShows, type EnrichedShow } from '@/lib/libraryGrouping'
 import { neon } from '@/lib/neon'
 import { useEpisodeWatchStats } from '@/lib/queries/episodeWatches'
 import { useShowDetailsMany } from '@/lib/queries/tmdb'
 import { useUserShows } from '@/lib/queries/userShows'
+import { getNextEpisodeLabel } from '@/lib/showProgress'
 import { getUpcomingEpisodes } from '@/lib/upcoming'
-import { SHOW_STATUS_OPTIONS, type ShowStatus, type UserShowRow } from '@/types/db'
+import { SHOW_STATUS_OPTIONS, type ShowStatus } from '@/types/db'
 import type { TmdbShowDetails } from '@/types/tmdb'
 
 const Wrap = styled.div`
@@ -40,6 +41,8 @@ const Message = styled.p`
 
 const HeaderActions = styled.div`
   display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
   gap: ${({ theme }) => theme.spacing(2)};
 `
 
@@ -51,6 +54,7 @@ const SectionHeading = styled.h2`
 
 export default function Library() {
   const [filter, setFilter] = useState<ShowStatus | 'all'>('all')
+  const [upcomingOnly, setUpcomingOnly] = useState(false)
   const { data: userShows, isPending } = useUserShows()
 
   const showIds = userShows?.map((s) => s.tmdb_show_id) ?? []
@@ -63,24 +67,36 @@ export default function Library() {
     if (data) detailsByShowId.set(id, data)
   })
 
-  const watchingDetails = (userShows ?? [])
-    .filter((s) => s.status === 'watching')
-    .map((s) => detailsByShowId.get(s.tmdb_show_id))
-    .filter((d): d is TmdbShowDetails => Boolean(d))
-  const upcoming = getUpcomingEpisodes(watchingDetails)
-
-  const filtered = (userShows ?? []).filter((s) => filter === 'all' || s.status === filter)
-  const { main, staleWatching } = groupAndSortUserShows(filtered, watchStats)
-
-  const renderCard = (userShow: UserShowRow) => {
+  const enriched: EnrichedShow[] = (userShows ?? []).map((userShow) => {
     const show = detailsByShowId.get(userShow.tmdb_show_id)
-    if (!show) return null
+    const stats = watchStats[userShow.tmdb_show_id]
+    return {
+      userShow,
+      show,
+      watchedCount: stats?.count ?? 0,
+      lastWatchedAt: stats?.lastWatchedAt ?? null,
+      effectiveStatus: getEffectiveStatus(userShow.status, stats?.count ?? 0, show?.number_of_episodes),
+    }
+  })
+
+  const watchingShows = enriched
+    .filter((e): e is EnrichedShow & { show: TmdbShowDetails } => e.effectiveStatus === 'watching' && Boolean(e.show))
+    .map((e) => e.show)
+  const upcoming = getUpcomingEpisodes(watchingShows)
+
+  const filtered = enriched.filter((e) => filter === 'all' || e.effectiveStatus === filter)
+  const { main, staleWatching } = groupAndSortUserShows(filtered)
+
+  const renderCard = (entry: EnrichedShow) => {
+    if (!entry.show) return null
+    const watchedKeys = watchStats[entry.userShow.tmdb_show_id]?.watchedKeys ?? new Set<string>()
     return (
       <LibraryShowCard
-        key={userShow.id}
-        show={show}
-        status={userShow.status}
-        watchedCount={watchStats[userShow.tmdb_show_id]?.count ?? 0}
+        key={entry.userShow.id}
+        show={entry.show}
+        status={entry.effectiveStatus}
+        watchedCount={entry.watchedCount}
+        nextEpisodeLabel={getNextEpisodeLabel(entry.show, watchedKeys)}
       />
     )
   }
@@ -89,8 +105,15 @@ export default function Library() {
     <Wrap>
       <Header>
         <Title>Library</Title>
-        {/* TODO: move to Settings, Phase 5 */}
         <HeaderActions>
+          <Button
+            variant={upcomingOnly ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setUpcomingOnly((v) => !v)}
+          >
+            Upcoming
+          </Button>
+          {/* TODO: move to Settings, Phase 5 */}
           <Button variant="ghost" size="sm" asChild>
             <Link to="/import">Import from TV Time</Link>
           </Button>
@@ -100,28 +123,32 @@ export default function Library() {
         </HeaderActions>
       </Header>
 
-      <UpcomingList entries={upcoming} />
-
-      <ToggleGroup type="single" value={filter} onValueChange={(v) => v && setFilter(v as ShowStatus | 'all')}>
-        <ToggleGroupItem value="all">All</ToggleGroupItem>
-        {SHOW_STATUS_OPTIONS.map((opt) => (
-          <ToggleGroupItem key={opt.value} value={opt.value}>
-            {opt.label}
-          </ToggleGroupItem>
-        ))}
-      </ToggleGroup>
-
-      {isPending && <Message>Loading…</Message>}
-      {!isPending && filtered.length === 0 && (
-        <Message>Nothing here yet — head to Discover to start tracking a show.</Message>
-      )}
-
-      {main.map(renderCard)}
-
-      {staleWatching.length > 0 && (
+      {upcomingOnly ? (
+        <UpcomingList entries={upcoming} />
+      ) : (
         <>
-          <SectionHeading>Haven't watched in a while</SectionHeading>
-          {staleWatching.map(renderCard)}
+          <ToggleGroup type="single" value={filter} onValueChange={(v) => v && setFilter(v as ShowStatus | 'all')}>
+            <ToggleGroupItem value="all">All</ToggleGroupItem>
+            {SHOW_STATUS_OPTIONS.map((opt) => (
+              <ToggleGroupItem key={opt.value} value={opt.value}>
+                {opt.label}
+              </ToggleGroupItem>
+            ))}
+          </ToggleGroup>
+
+          {isPending && <Message>Loading…</Message>}
+          {!isPending && filtered.length === 0 && (
+            <Message>Nothing here yet — head to Discover to start tracking a show.</Message>
+          )}
+
+          {main.map(renderCard)}
+
+          {staleWatching.length > 0 && (
+            <>
+              <SectionHeading>Haven't watched in a while</SectionHeading>
+              {staleWatching.map(renderCard)}
+            </>
+          )}
         </>
       )}
     </Wrap>
