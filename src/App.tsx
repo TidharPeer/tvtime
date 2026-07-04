@@ -1,10 +1,13 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { BrowserRouter, Route, Routes } from 'react-router-dom'
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { ThemeProvider } from 'styled-components'
 
 import { AuthGate } from '@/components/AuthGate'
-import Home from '@/pages/Home'
+import { ProtectedLayout } from '@/components/ProtectedLayout'
+import Discover from '@/pages/Discover'
+import Library from '@/pages/Library'
 import Login from '@/pages/Login'
+import ShowDetail from '@/pages/ShowDetail'
 import { GlobalStyle } from '@/styles/GlobalStyle'
 import { theme } from '@/styles/theme'
 
@@ -18,14 +21,15 @@ function App() {
         <BrowserRouter>
           <Routes>
             <Route path="/login" element={<Login />} />
-            <Route
-              path="/"
-              element={
-                <AuthGate>
-                  <Home />
-                </AuthGate>
-              }
-            />
+            <Route element={<AuthGate />}>
+              <Route element={<ProtectedLayout />}>
+                <Route index element={<Navigate to="/discover" replace />} />
+                <Route path="discover" element={<Discover />} />
+                <Route path="show/:tmdbShowId" element={<ShowDetail />} />
+                <Route path="library" element={<Library />} />
+              </Route>
+            </Route>
+            <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </BrowserRouter>
       </ThemeProvider>
