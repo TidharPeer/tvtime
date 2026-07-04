@@ -1,11 +1,12 @@
 import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query'
 
+import { maybeAutoCompleteShow } from '@/lib/autoComplete'
 import { neon } from '@/lib/neon'
 import { queryKeys } from '@/lib/queryKeys'
 import type { UserEpisodeWatchRow } from '@/types/db'
 import type { TmdbEpisode } from '@/types/tmdb'
 
-type WatchMarker = Pick<UserEpisodeWatchRow, 'season_number' | 'episode_number' | 'tmdb_episode_id'>
+type WatchMarker = Pick<UserEpisodeWatchRow, 'season_number' | 'episode_number' | 'tmdb_episode_id' | 'watched_at'>
 
 export function episodeWatchesQueryOptions(tmdbShowId: number) {
   return {
@@ -13,7 +14,7 @@ export function episodeWatchesQueryOptions(tmdbShowId: number) {
     queryFn: async () => {
       const { data, error } = await neon
         .from('user_episode_watches')
-        .select('season_number, episode_number, tmdb_episode_id')
+        .select('season_number, episode_number, tmdb_episode_id, watched_at')
         .eq('tmdb_show_id', tmdbShowId)
       if (error) throw error
       return data as WatchMarker[]
@@ -25,11 +26,25 @@ export function useShowEpisodeWatches(tmdbShowId: number) {
   return useQuery(episodeWatchesQueryOptions(tmdbShowId))
 }
 
-export function useEpisodeWatchCounts(tmdbShowIds: number[]) {
+export interface ShowWatchStats {
+  count: number
+  lastWatchedAt: string | null
+}
+
+export function useEpisodeWatchStats(tmdbShowIds: number[]): Record<number, ShowWatchStats> {
   return useQueries({
     queries: tmdbShowIds.map(episodeWatchesQueryOptions),
     combine: (results) =>
-      Object.fromEntries(tmdbShowIds.map((id, i) => [id, results[i].data?.length ?? 0])) as Record<number, number>,
+      Object.fromEntries(
+        tmdbShowIds.map((id, i) => {
+          const rows = results[i].data ?? []
+          const lastWatchedAt = rows.reduce<string | null>(
+            (max, r) => (!max || r.watched_at > max ? r.watched_at : max),
+            null,
+          )
+          return [id, { count: rows.length, lastWatchedAt }]
+        }),
+      ) as Record<number, ShowWatchStats>,
   })
 }
 
@@ -58,6 +73,12 @@ export function useSetEpisodeWatched() {
           { onConflict: 'user_id,tmdb_show_id,season_number,episode_number' },
         )
         if (error) throw error
+
+        try {
+          await maybeAutoCompleteShow(queryClient, userId, vars.tmdbShowId)
+        } catch (e) {
+          console.error('auto-complete check failed', e)
+        }
       } else {
         const { error } = await neon.from('user_episode_watches').delete().match({
           user_id: userId,
@@ -91,6 +112,12 @@ export function useMarkSeasonWatched() {
         .from('user_episode_watches')
         .upsert(rows, { onConflict: 'user_id,tmdb_show_id,season_number,episode_number' })
       if (error) throw error
+
+      try {
+        await maybeAutoCompleteShow(queryClient, userId, tmdbShowId)
+      } catch (e) {
+        console.error('auto-complete check failed', e)
+      }
     },
     onSuccess: (_data, vars) =>
       queryClient.invalidateQueries({ queryKey: queryKeys.episodeWatches(vars.tmdbShowId) }),

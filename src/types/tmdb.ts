@@ -24,6 +24,22 @@ export interface TmdbSeasonSummary {
   poster_path: string | null
 }
 
+export interface TmdbUpcomingEpisode {
+  id: number
+  name: string
+  overview: string
+  air_date: string | null
+  episode_number: number
+  episode_type: string
+  production_code: string
+  runtime: number | null
+  season_number: number
+  show_id: number
+  still_path: string | null
+  vote_average: number
+  vote_count: number
+}
+
 export interface TmdbShowDetails {
   id: number
   name: string
@@ -36,6 +52,8 @@ export interface TmdbShowDetails {
   number_of_episodes: number
   vote_average: number
   seasons: TmdbSeasonSummary[]
+  next_episode_to_air: TmdbUpcomingEpisode | null
+  last_episode_to_air: TmdbUpcomingEpisode | null
 }
 
 export interface TmdbEpisode {

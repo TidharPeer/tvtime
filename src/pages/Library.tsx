@@ -3,13 +3,17 @@ import { Link } from 'react-router-dom'
 import styled from 'styled-components'
 
 import { LibraryShowCard } from '@/components/LibraryShowCard'
+import { UpcomingList } from '@/components/UpcomingList'
 import { Button } from '@/components/ui/button'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
+import { groupAndSortUserShows } from '@/lib/libraryGrouping'
 import { neon } from '@/lib/neon'
-import { useEpisodeWatchCounts } from '@/lib/queries/episodeWatches'
+import { useEpisodeWatchStats } from '@/lib/queries/episodeWatches'
 import { useShowDetailsMany } from '@/lib/queries/tmdb'
 import { useUserShows } from '@/lib/queries/userShows'
-import { SHOW_STATUS_OPTIONS, type ShowStatus } from '@/types/db'
+import { getUpcomingEpisodes } from '@/lib/upcoming'
+import { SHOW_STATUS_OPTIONS, type ShowStatus, type UserShowRow } from '@/types/db'
+import type { TmdbShowDetails } from '@/types/tmdb'
 
 const Wrap = styled.div`
   display: flex;
@@ -39,15 +43,47 @@ const HeaderActions = styled.div`
   gap: ${({ theme }) => theme.spacing(2)};
 `
 
+const SectionHeading = styled.h2`
+  margin: 0;
+  font-size: 1rem;
+  color: ${({ theme }) => theme.colors.text};
+`
+
 export default function Library() {
   const [filter, setFilter] = useState<ShowStatus | 'all'>('all')
   const { data: userShows, isPending } = useUserShows()
 
   const showIds = userShows?.map((s) => s.tmdb_show_id) ?? []
   const showDetailsResults = useShowDetailsMany(showIds)
-  const watchCounts = useEpisodeWatchCounts(showIds)
+  const watchStats = useEpisodeWatchStats(showIds)
+
+  const detailsByShowId = new Map<number, TmdbShowDetails>()
+  showIds.forEach((id, i) => {
+    const data = showDetailsResults[i]?.data
+    if (data) detailsByShowId.set(id, data)
+  })
+
+  const watchingDetails = (userShows ?? [])
+    .filter((s) => s.status === 'watching')
+    .map((s) => detailsByShowId.get(s.tmdb_show_id))
+    .filter((d): d is TmdbShowDetails => Boolean(d))
+  const upcoming = getUpcomingEpisodes(watchingDetails)
 
   const filtered = (userShows ?? []).filter((s) => filter === 'all' || s.status === filter)
+  const { main, staleWatching } = groupAndSortUserShows(filtered, watchStats)
+
+  const renderCard = (userShow: UserShowRow) => {
+    const show = detailsByShowId.get(userShow.tmdb_show_id)
+    if (!show) return null
+    return (
+      <LibraryShowCard
+        key={userShow.id}
+        show={show}
+        status={userShow.status}
+        watchedCount={watchStats[userShow.tmdb_show_id]?.count ?? 0}
+      />
+    )
+  }
 
   return (
     <Wrap>
@@ -64,6 +100,8 @@ export default function Library() {
         </HeaderActions>
       </Header>
 
+      <UpcomingList entries={upcoming} />
+
       <ToggleGroup type="single" value={filter} onValueChange={(v) => v && setFilter(v as ShowStatus | 'all')}>
         <ToggleGroupItem value="all">All</ToggleGroupItem>
         {SHOW_STATUS_OPTIONS.map((opt) => (
@@ -78,19 +116,14 @@ export default function Library() {
         <Message>Nothing here yet — head to Discover to start tracking a show.</Message>
       )}
 
-      {filtered.map((userShow) => {
-        const index = showIds.indexOf(userShow.tmdb_show_id)
-        const show = showDetailsResults[index]?.data
-        if (!show) return null
-        return (
-          <LibraryShowCard
-            key={userShow.id}
-            show={show}
-            status={userShow.status}
-            watchedCount={watchCounts[userShow.tmdb_show_id] ?? 0}
-          />
-        )
-      })}
+      {main.map(renderCard)}
+
+      {staleWatching.length > 0 && (
+        <>
+          <SectionHeading>Haven't watched in a while</SectionHeading>
+          {staleWatching.map(renderCard)}
+        </>
+      )}
     </Wrap>
   )
 }

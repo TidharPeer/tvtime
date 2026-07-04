@@ -15,23 +15,26 @@ export function useUserShows() {
   })
 }
 
+export async function upsertShowStatus(userId: string, tmdbShowId: number, status: ShowStatus): Promise<void> {
+  const { error } = await neon.from('user_shows').upsert(
+    {
+      user_id: userId,
+      tmdb_show_id: tmdbShowId,
+      status,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: 'user_id,tmdb_show_id' },
+  )
+  if (error) throw error
+}
+
 export function useUpsertShowStatus() {
   const queryClient = useQueryClient()
   const { data: authData } = neon.auth.useSession()
 
   return useMutation({
-    mutationFn: async ({ tmdbShowId, status }: { tmdbShowId: number; status: ShowStatus }) => {
-      const { error } = await neon.from('user_shows').upsert(
-        {
-          user_id: authData!.user.id,
-          tmdb_show_id: tmdbShowId,
-          status,
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: 'user_id,tmdb_show_id' },
-      )
-      if (error) throw error
-    },
+    mutationFn: ({ tmdbShowId, status }: { tmdbShowId: number; status: ShowStatus }) =>
+      upsertShowStatus(authData!.user.id, tmdbShowId, status),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.userShows() }),
   })
 }
