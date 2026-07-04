@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import styled from 'styled-components'
 
 import { LibraryShowCard } from '@/components/LibraryShowCard'
@@ -33,6 +34,11 @@ const Message = styled.p`
   color: ${({ theme }) => theme.colors.textMuted};
 `
 
+const HeaderActions = styled.div`
+  display: flex;
+  gap: ${({ theme }) => theme.spacing(2)};
+`
+
 export default function Library() {
   const [filter, setFilter] = useState<ShowStatus | 'all'>('all')
   const { data: userShows, isPending } = useUserShows()
@@ -48,9 +54,14 @@ export default function Library() {
       <Header>
         <Title>Library</Title>
         {/* TODO: move to Settings, Phase 5 */}
-        <Button variant="ghost" size="sm" onClick={() => neon.auth.signOut()}>
-          Sign out
-        </Button>
+        <HeaderActions>
+          <Button variant="ghost" size="sm" asChild>
+            <Link to="/import">Import from TV Time</Link>
+          </Button>
+          <Button variant="ghost" size="sm" onClick={() => neon.auth.signOut()}>
+            Sign out
+          </Button>
+        </HeaderActions>
       </Header>
 
       <ToggleGroup type="single" value={filter} onValueChange={(v) => v && setFilter(v as ShowStatus | 'all')}>

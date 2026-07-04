@@ -5,6 +5,7 @@ import { ThemeProvider } from 'styled-components'
 import { AuthGate } from '@/components/AuthGate'
 import { ProtectedLayout } from '@/components/ProtectedLayout'
 import Discover from '@/pages/Discover'
+import Import from '@/pages/Import'
 import Library from '@/pages/Library'
 import Login from '@/pages/Login'
 import ShowDetail from '@/pages/ShowDetail'
@@ -27,6 +28,7 @@ function App() {
                 <Route path="discover" element={<Discover />} />
                 <Route path="show/:tmdbShowId" element={<ShowDetail />} />
                 <Route path="library" element={<Library />} />
+                <Route path="import" element={<Import />} />
               </Route>
             </Route>
             <Route path="*" element={<Navigate to="/" replace />} />
