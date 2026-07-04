@@ -3,6 +3,7 @@ import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/rea
 import { maybeAutoCompleteShow } from '@/lib/autoComplete'
 import { neon } from '@/lib/neon'
 import { queryKeys } from '@/lib/queryKeys'
+import { ensureShowTracked } from '@/lib/queries/userShows'
 import type { UserEpisodeWatchRow } from '@/types/db'
 import type { TmdbEpisode } from '@/types/tmdb'
 
@@ -78,9 +79,11 @@ export function useSetEpisodeWatched() {
         if (error) throw error
 
         try {
+          const created = await ensureShowTracked(userId, vars.tmdbShowId)
+          if (created) await queryClient.invalidateQueries({ queryKey: queryKeys.userShows() })
           await maybeAutoCompleteShow(queryClient, userId, vars.tmdbShowId)
         } catch (e) {
-          console.error('auto-complete check failed', e)
+          console.error('auto-complete/tracking check failed', e)
         }
       } else {
         const { error } = await neon.from('user_episode_watches').delete().match({
@@ -117,9 +120,11 @@ export function useMarkSeasonWatched() {
       if (error) throw error
 
       try {
+        const created = await ensureShowTracked(userId, tmdbShowId)
+        if (created) await queryClient.invalidateQueries({ queryKey: queryKeys.userShows() })
         await maybeAutoCompleteShow(queryClient, userId, tmdbShowId)
       } catch (e) {
-        console.error('auto-complete check failed', e)
+        console.error('auto-complete/tracking check failed', e)
       }
     },
     onSuccess: (_data, vars) =>
