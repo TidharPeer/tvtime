@@ -34,6 +34,12 @@ const Title = styled.h1`
   color: ${({ theme }) => theme.colors.text};
 `
 
+const Meta = styled.p`
+  margin: 0;
+  font-size: 0.85rem;
+  color: ${({ theme }) => theme.colors.textMuted};
+`
+
 const Overview = styled.p`
   margin: 0;
   color: ${({ theme }) => theme.colors.textMuted};
@@ -61,6 +67,9 @@ export default function ShowDetail() {
       </Backdrop>
       <Content>
         <Title>{show.name}</Title>
+        <Meta>
+          {show.number_of_seasons} Season{show.number_of_seasons !== 1 ? 's' : ''} • {show.status}
+        </Meta>
         <Overview>{show.overview}</Overview>
         <StatusSelector tmdbShowId={id} currentStatus={userShow?.status} />
         <SeasonAccordion tmdbShowId={id} seasons={show.seasons} />
