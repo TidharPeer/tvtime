@@ -1,6 +1,6 @@
 import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query'
 
-import { maybeAutoCompleteShow } from '@/lib/autoComplete'
+import { syncShowCompletionStatus } from '@/lib/autoComplete'
 import { neon } from '@/lib/neon'
 import { queryKeys } from '@/lib/queryKeys'
 import { ensureShowTracked } from '@/lib/queries/userShows'
@@ -81,7 +81,7 @@ export function useSetEpisodeWatched() {
         try {
           const created = await ensureShowTracked(userId, vars.tmdbShowId)
           if (created) await queryClient.invalidateQueries({ queryKey: queryKeys.userShows() })
-          await maybeAutoCompleteShow(queryClient, userId, vars.tmdbShowId)
+          await syncShowCompletionStatus(queryClient, userId, vars.tmdbShowId)
         } catch (e) {
           console.error('auto-complete/tracking check failed', e)
         }
@@ -93,6 +93,12 @@ export function useSetEpisodeWatched() {
           episode_number: vars.episodeNumber,
         })
         if (error) throw error
+
+        try {
+          await syncShowCompletionStatus(queryClient, userId, vars.tmdbShowId)
+        } catch (e) {
+          console.error('completion sync check failed', e)
+        }
       }
     },
     onSuccess: (_data, vars) =>
@@ -122,7 +128,7 @@ export function useMarkSeasonWatched() {
       try {
         const created = await ensureShowTracked(userId, tmdbShowId)
         if (created) await queryClient.invalidateQueries({ queryKey: queryKeys.userShows() })
-        await maybeAutoCompleteShow(queryClient, userId, tmdbShowId)
+        await syncShowCompletionStatus(queryClient, userId, tmdbShowId)
       } catch (e) {
         console.error('auto-complete/tracking check failed', e)
       }

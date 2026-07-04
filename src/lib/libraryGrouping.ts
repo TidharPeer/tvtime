@@ -12,13 +12,25 @@ export interface EnrichedShow {
   effectiveStatus: ShowStatus
 }
 
+/**
+ * Symmetric in both directions: a fully-caught-up show reads as 'completed'
+ * even if stored otherwise (e.g. imported as 'watching'), and a show with
+ * real but partial watch history never reads as 'completed' even if stored
+ * that way (e.g. the importer's `isFollowed ? watching : completed` heuristic
+ * mislabels a show the user unfollowed on TV Time mid-way through as done).
+ * A show with zero tracked watches is left exactly as stored either way —
+ * there's no contrary evidence to act on. Never overrides dropped/on_hold.
+ */
 export function getEffectiveStatus(
   status: ShowStatus,
   watchedCount: number,
-  totalEpisodes: number | undefined,
+  airedEpisodes: number | undefined,
 ): ShowStatus {
   if (status === 'dropped' || status === 'on_hold') return status
-  if (totalEpisodes && totalEpisodes > 0 && watchedCount >= totalEpisodes) return 'completed'
+  if (airedEpisodes && airedEpisodes > 0) {
+    if (watchedCount >= airedEpisodes) return 'completed'
+    if (watchedCount > 0) return 'watching'
+  }
   return status
 }
 
