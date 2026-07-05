@@ -5,4 +5,6 @@ export const queryKeys = {
   tmdbSeason: (id: number, season: number) => ['tmdb', 'season', id, season] as const,
   userShows: () => ['userShows'] as const,
   episodeWatches: (id: number) => ['episodeWatches', id] as const,
+  episodeWatchesBatch: (ids: number[]) => ['episodeWatches', 'batch', [...ids].sort((a, b) => a - b)] as const,
+  episodeWatchesAll: () => ['episodeWatches'] as const,
 }
