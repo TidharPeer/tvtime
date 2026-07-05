@@ -39,10 +39,21 @@ export interface GroupedLibrary {
   staleWatching: EnrichedShow[]
 }
 
+/**
+ * Reference point is the more recent of the user's last watch and the show's
+ * last aired episode — not lastWatchedAt alone. Otherwise a show that was
+ * completed long ago and just got a new season instantly reads as "haven't
+ * watched in a while" the moment it flips back to 'watching', even though
+ * the new episode just aired and the user hasn't had a chance to watch it
+ * yet. (Shares a pre-existing blind spot with getAiredEpisodeCount: a
+ * season-0 special becoming last_episode_to_air isn't special-cased.)
+ */
 function isStaleWatching(entry: EnrichedShow, now: Date): boolean {
   if (entry.effectiveStatus !== 'watching') return false
-  if (!entry.lastWatchedAt) return true
-  const daysSince = (now.getTime() - Date.parse(entry.lastWatchedAt)) / 86_400_000
+  const lastAiredAt = entry.show?.last_episode_to_air?.air_date ?? null
+  const mostRecent = [entry.lastWatchedAt, lastAiredAt].filter((d): d is string => Boolean(d)).sort().at(-1)
+  if (!mostRecent) return true
+  const daysSince = (now.getTime() - Date.parse(mostRecent)) / 86_400_000
   return daysSince >= STALE_WATCHING_DAYS
 }
 

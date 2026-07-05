@@ -1,13 +1,20 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { MoreVertical } from 'lucide-react'
 import styled from 'styled-components'
 
 import { LibraryShowCard } from '@/components/LibraryShowCard'
+import { Spinner } from '@/components/Spinner'
 import { UpcomingList } from '@/components/UpcomingList'
+import { UserMenu } from '@/components/UserMenu'
 import { Button } from '@/components/ui/button'
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { getEffectiveStatus, groupAndSortUserShows, type EnrichedShow } from '@/lib/libraryGrouping'
-import { neon } from '@/lib/neon'
 import { useEpisodeWatchStats } from '@/lib/queries/episodeWatches'
 import { useShowDetailsMany } from '@/lib/queries/tmdb'
 import { useUserShows } from '@/lib/queries/userShows'
@@ -122,13 +129,7 @@ export default function Library() {
           >
             Upcoming
           </Button>
-          {/* TODO: move to Settings, Phase 5 */}
-          <Button variant="ghost" size="sm" asChild>
-            <Link to="/import">Import from TV Time</Link>
-          </Button>
-          <Button variant="ghost" size="sm" onClick={() => neon.auth.signOut()}>
-            Sign out
-          </Button>
+          <UserMenu />
         </HeaderActions>
       </Header>
 
@@ -136,16 +137,25 @@ export default function Library() {
         <UpcomingList entries={upcoming} />
       ) : (
         <>
-          <ToggleGroup type="single" value={filter} onValueChange={(v) => v && setFilter(v as ShowStatus | 'all')}>
-            <ToggleGroupItem value="all">All</ToggleGroupItem>
-            {SHOW_STATUS_OPTIONS.map((opt) => (
-              <ToggleGroupItem key={opt.value} value={opt.value}>
-                {opt.label}
-              </ToggleGroupItem>
-            ))}
-          </ToggleGroup>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="icon" aria-label="Filter shows">
+                <MoreVertical />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+              <DropdownMenuRadioGroup value={filter} onValueChange={(v) => setFilter(v as ShowStatus | 'all')}>
+                <DropdownMenuRadioItem value="all">All</DropdownMenuRadioItem>
+                {SHOW_STATUS_OPTIONS.map((opt) => (
+                  <DropdownMenuRadioItem key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </DropdownMenuRadioItem>
+                ))}
+              </DropdownMenuRadioGroup>
+            </DropdownMenuContent>
+          </DropdownMenu>
 
-          {isPending && <Message>Loading…</Message>}
+          {isPending && <Spinner />}
           {!isPending && filtered.length === 0 && (
             <Message>Nothing here yet — head to Discover to start tracking a show.</Message>
           )}
