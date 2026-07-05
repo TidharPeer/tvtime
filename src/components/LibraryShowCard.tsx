@@ -1,24 +1,32 @@
+import { Check, ChevronRight } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import styled from 'styled-components'
 
-import { ProgressBar } from '@/components/ProgressBar'
 import { StatusBadge } from '@/components/StatusBadge'
+import { useSetEpisodeWatched } from '@/lib/queries/episodeWatches'
+import { getNextEpisodeInfo } from '@/lib/showProgress'
 import { tmdbImageUrl } from '@/lib/tmdb'
 import type { ShowStatus } from '@/types/db'
 import type { TmdbShowDetails } from '@/types/tmdb'
 
-const Card = styled(Link)`
+const Card = styled.div`
   display: flex;
+  align-items: center;
   gap: ${({ theme }) => theme.spacing(3)};
-  padding: ${({ theme }) => theme.spacing(3)} 0;
-  border-bottom: 1px solid ${({ theme }) => theme.colors.border};
+  padding: ${({ theme }) => theme.spacing(3)};
+  background: ${({ theme }) => theme.colors.surface};
+  border-radius: ${({ theme }) => theme.radius.lg};
+`
+
+const PosterLink = styled(Link)`
+  display: block;
+  flex-shrink: 0;
 `
 
 const Poster = styled.div<{ $src: string | null }>`
-  width: 64px;
+  width: 88px;
   aspect-ratio: 2 / 3;
   border-radius: ${({ theme }) => theme.radius.sm};
-  flex-shrink: 0;
   background: ${({ theme, $src }) => ($src ? `center / cover no-repeat url(${$src})` : theme.colors.surfaceRaised)};
 `
 
@@ -27,44 +35,142 @@ const Info = styled.div`
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: ${({ theme }) => theme.spacing(2)};
+  gap: ${({ theme }) => theme.spacing(1)};
 `
 
-const Title = styled.p`
+const NamePill = styled(Link)`
+  display: inline-flex;
+  align-self: flex-start;
+  align-items: center;
+  gap: ${({ theme }) => theme.spacing(1)};
+  padding: 2px ${({ theme }) => theme.spacing(2)};
+  border: 1px solid ${({ theme }) => theme.colors.border};
+  border-radius: ${({ theme }) => theme.radius.pill};
+  font-weight: 600;
+  color: ${({ theme }) => theme.colors.text};
+
+  svg {
+    width: 14px;
+    height: 14px;
+    color: ${({ theme }) => theme.colors.textMuted};
+  }
+`
+
+const EpisodeLine = styled.p`
   margin: 0;
   font-weight: 600;
   color: ${({ theme }) => theme.colors.text};
+
+  span {
+    font-weight: 400;
+    color: ${({ theme }) => theme.colors.textMuted};
+  }
 `
 
-const ProgressLabel = styled.span`
-  font-size: 0.75rem;
+const EpisodeTitle = styled.p`
+  margin: 0;
+  font-size: 0.85rem;
   color: ${({ theme }) => theme.colors.textMuted};
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+`
+
+const Badges = styled.div`
+  display: flex;
+  align-items: center;
+  gap: ${({ theme }) => theme.spacing(1)};
+  flex-wrap: wrap;
+`
+
+const Badge = styled.span<{ $variant: 'outline' | 'warning' }>`
+  padding: 2px ${({ theme }) => theme.spacing(2)};
+  border-radius: ${({ theme }) => theme.radius.pill};
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  ${({ theme, $variant }) =>
+    $variant === 'warning'
+      ? `background: ${theme.colors.warning}; color: ${theme.colors.background};`
+      : `border: 1px solid ${theme.colors.border}; color: ${theme.colors.text};`}
+`
+
+const MarkWatchedButton = styled.button`
+  appearance: none;
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: none;
+  background: ${({ theme }) => theme.colors.text};
+  color: ${({ theme }) => theme.colors.background};
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
 `
 
 export function LibraryShowCard({
   show,
   status,
-  watchedCount,
-  nextEpisodeLabel,
+  watchedKeys,
 }: {
   show: TmdbShowDetails
   status: ShowStatus
-  watchedCount: number
-  nextEpisodeLabel: string | null
+  watchedKeys: Set<string>
 }) {
+  const next = getNextEpisodeInfo(show, watchedKeys)
+  const { mutate: setWatched, isPending } = useSetEpisodeWatched()
+
   return (
-    <Card to={`/show/${show.id}`}>
-      <Poster $src={tmdbImageUrl(show.poster_path, 'w185')} />
+    <Card>
+      <PosterLink to={`/show/${show.id}`} aria-label={show.name}>
+        <Poster $src={tmdbImageUrl(show.poster_path, 'w185')} />
+      </PosterLink>
       <Info>
-        <Title>{show.name}</Title>
-        <StatusBadge status={status} />
-        {status !== 'completed' && (
+        <NamePill to={`/show/${show.id}`}>
+          {show.name}
+          <ChevronRight />
+        </NamePill>
+        {next && (
           <>
-            <ProgressBar value={watchedCount} max={show.number_of_episodes} />
-            <ProgressLabel>{nextEpisodeLabel ?? `${watchedCount}/${show.number_of_episodes} episodes`}</ProgressLabel>
+            <EpisodeLine>
+              S{String(next.seasonNumber).padStart(2, '0')} | E{String(next.episodeNumber).padStart(2, '0')}
+              {next.queuedCount > 0 && <span> +{next.queuedCount}</span>}
+            </EpisodeLine>
+            {next.episodeName && <EpisodeTitle>{next.episodeName}</EpisodeTitle>}
           </>
         )}
+        <Badges>
+          <StatusBadge status={status} />
+          {next?.isPremiere && <Badge $variant="outline">Premiere</Badge>}
+          {next?.isNew && <Badge $variant="warning">New</Badge>}
+        </Badges>
       </Info>
+      {next && (
+        <MarkWatchedButton
+          type="button"
+          aria-label="Mark episode watched"
+          disabled={isPending}
+          onClick={() =>
+            setWatched({
+              tmdbShowId: show.id,
+              seasonNumber: next.seasonNumber,
+              episodeNumber: next.episodeNumber,
+              tmdbEpisodeId: null,
+              watched: true,
+            })
+          }
+        >
+          <Check />
+        </MarkWatchedButton>
+      )}
     </Card>
   )
 }

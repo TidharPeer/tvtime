@@ -10,6 +10,7 @@ export const theme = {
     primaryText: '#ffffff',
     success: '#22c55e',
     danger: '#ef4444',
+    warning: '#facc15',
   },
   spacing: (multiplier: number) => `${multiplier * 4}px`,
   radius: {

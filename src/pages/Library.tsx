@@ -20,7 +20,7 @@ import { getEffectiveStatus, groupAndSortUserShows, type EnrichedShow } from '@/
 import { useEpisodeWatchStats } from '@/lib/queries/episodeWatches'
 import { useShowDetailsMany } from '@/lib/queries/tmdb'
 import { useUserShows } from '@/lib/queries/userShows'
-import { getAiredEpisodeCount, getNextEpisodeLabel } from '@/lib/showProgress'
+import { getAiredEpisodeCount } from '@/lib/showProgress'
 import { getUpcomingEpisodes } from '@/lib/upcoming'
 import { SHOW_STATUS_OPTIONS, type ShowStatus } from '@/types/db'
 import type { TmdbShowDetails } from '@/types/tmdb'
@@ -114,13 +114,7 @@ export default function Library() {
     if (!entry.show) return null
     const watchedKeys = watchStats[entry.userShow.tmdb_show_id]?.watchedKeys ?? new Set<string>()
     return (
-      <LibraryShowCard
-        key={entry.userShow.id}
-        show={entry.show}
-        status={entry.effectiveStatus}
-        watchedCount={entry.watchedCount}
-        nextEpisodeLabel={getNextEpisodeLabel(entry.show, watchedKeys)}
-      />
+      <LibraryShowCard key={entry.userShow.id} show={entry.show} status={entry.effectiveStatus} watchedKeys={watchedKeys} />
     )
   }
 
