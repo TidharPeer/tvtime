@@ -4,7 +4,7 @@ import { neon } from '@/lib/neon'
 import { queryKeys } from '@/lib/queryKeys'
 import type { ShowStatus, UserShowRow } from '@/types/db'
 
-export function useUserShows() {
+export function useUserShows(options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: queryKeys.userShows(),
     queryFn: async () => {
@@ -12,6 +12,7 @@ export function useUserShows() {
       if (error) throw error
       return data as UserShowRow[]
     },
+    enabled: options?.enabled ?? true,
   })
 }
 
