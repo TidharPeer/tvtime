@@ -34,11 +34,16 @@ export interface ShowWatchStats {
   watchedKeys: Set<string>
 }
 
-export function useEpisodeWatchStats(tmdbShowIds: number[]): Record<number, ShowWatchStats> {
+export interface EpisodeWatchStatsResult {
+  statsByShowId: Record<number, ShowWatchStats>
+  isPending: boolean
+}
+
+export function useEpisodeWatchStats(tmdbShowIds: number[]): EpisodeWatchStatsResult {
   return useQueries({
     queries: tmdbShowIds.map(episodeWatchesQueryOptions),
-    combine: (results) =>
-      Object.fromEntries(
+    combine: (results) => ({
+      statsByShowId: Object.fromEntries(
         tmdbShowIds.map((id, i) => {
           const rows = results[i].data ?? []
           const lastWatchedAt = rows.reduce<string | null>(
@@ -49,6 +54,8 @@ export function useEpisodeWatchStats(tmdbShowIds: number[]): Record<number, Show
           return [id, { count: rows.length, lastWatchedAt, watchedKeys }]
         }),
       ) as Record<number, ShowWatchStats>,
+      isPending: results.some((r) => r.isPending),
+    }),
   })
 }
 

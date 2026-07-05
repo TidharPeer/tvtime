@@ -17,9 +17,7 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { SUPPORT_URL } from '@/lib/env'
 import { getEffectiveStatus, groupAndSortUserShows, type EnrichedShow } from '@/lib/libraryGrouping'
-import { useEpisodeWatchStats } from '@/lib/queries/episodeWatches'
-import { useShowDetailsMany } from '@/lib/queries/tmdb'
-import { useUserShows } from '@/lib/queries/userShows'
+import { useLibraryData } from '@/lib/queries/library'
 import { getAiredEpisodeCount } from '@/lib/showProgress'
 import { getUpcomingEpisodes } from '@/lib/upcoming'
 import { SHOW_STATUS_OPTIONS, type ShowStatus } from '@/types/db'
@@ -69,17 +67,7 @@ const SectionHeading = styled.h2`
 export default function Library() {
   const [filter, setFilter] = useState<ShowStatus | 'all'>('watching')
   const [upcomingOnly, setUpcomingOnly] = useState(false)
-  const { data: userShows, isPending } = useUserShows()
-
-  const showIds = userShows?.map((s) => s.tmdb_show_id) ?? []
-  const showDetailsResults = useShowDetailsMany(showIds)
-  const watchStats = useEpisodeWatchStats(showIds)
-
-  const detailsByShowId = new Map<number, TmdbShowDetails>()
-  showIds.forEach((id, i) => {
-    const data = showDetailsResults[i]?.data
-    if (data) detailsByShowId.set(id, data)
-  })
+  const { userShows, detailsByShowId, watchStats, isPending } = useLibraryData()
 
   const enriched: EnrichedShow[] = (userShows ?? []).map((userShow) => {
     const show = detailsByShowId.get(userShow.tmdb_show_id)
