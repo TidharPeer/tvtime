@@ -1,22 +1,10 @@
-import styled, { type DefaultTheme } from 'styled-components'
+import styled from 'styled-components'
 
+import { statusColor } from '@/lib/statusColor'
 import { SHOW_STATUS_OPTIONS, type ShowStatus } from '@/types/db'
 
 function statusLabel(status: ShowStatus) {
   return SHOW_STATUS_OPTIONS.find((o) => o.value === status)?.label ?? status
-}
-
-function statusColor(status: ShowStatus, theme: DefaultTheme) {
-  switch (status) {
-    case 'watching':
-      return theme.colors.primary
-    case 'completed':
-      return theme.colors.success
-    case 'dropped':
-      return theme.colors.danger
-    default:
-      return theme.colors.textMuted
-  }
 }
 
 const Badge = styled.span<{ $status: ShowStatus }>`

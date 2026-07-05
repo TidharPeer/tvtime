@@ -1,7 +1,8 @@
 import { useState } from 'react'
-import { Coffee, MoreVertical } from 'lucide-react'
+import { Coffee, LayoutGrid, List, MoreVertical } from 'lucide-react'
 import styled from 'styled-components'
 
+import { LibraryGridCard } from '@/components/LibraryGridCard'
 import { LibraryShowCard } from '@/components/LibraryShowCard'
 import { Spinner } from '@/components/Spinner'
 import { UpcomingList } from '@/components/UpcomingList'
@@ -19,6 +20,7 @@ import { SUPPORT_URL } from '@/lib/env'
 import { getEffectiveStatus, groupAndSortUserShows, type EnrichedShow } from '@/lib/libraryGrouping'
 import { useLibraryData } from '@/lib/queries/library'
 import { getAiredEpisodeCount } from '@/lib/showProgress'
+import { useLocalStorageState } from '@/lib/useLocalStorageState'
 import { getUpcomingEpisodes } from '@/lib/upcoming'
 import { SHOW_STATUS_OPTIONS, type ShowStatus } from '@/types/db'
 import type { TmdbShowDetails } from '@/types/tmdb'
@@ -64,9 +66,22 @@ const SectionHeading = styled.h2`
   color: ${({ theme }) => theme.colors.text};
 `
 
+const ListControls = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+`
+
+const Grid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: ${({ theme }) => theme.spacing(3)};
+`
+
 export default function Library() {
   const [filter, setFilter] = useState<ShowStatus | 'all'>('watching')
   const [upcomingOnly, setUpcomingOnly] = useState(false)
+  const [viewMode, setViewMode] = useLocalStorageState<'list' | 'grid'>('tvtime-library-view', 'list')
   const { userShows, detailsByShowId, watchStats, isPending } = useLibraryData()
 
   const enriched: EnrichedShow[] = (userShows ?? []).map((userShow) => {
@@ -106,6 +121,14 @@ export default function Library() {
     )
   }
 
+  const renderGridCard = (entry: EnrichedShow) => {
+    if (!entry.show) return null
+    return <LibraryGridCard key={entry.userShow.id} show={entry.show} status={entry.effectiveStatus} />
+  }
+
+  const renderSection = (entries: EnrichedShow[]) =>
+    viewMode === 'grid' ? <Grid>{entries.map(renderGridCard)}</Grid> : entries.map(renderCard)
+
   return (
     <Wrap>
       <Header>
@@ -138,35 +161,46 @@ export default function Library() {
         <UpcomingList entries={upcoming} />
       ) : (
         <>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="icon" aria-label="Filter shows">
-                <MoreVertical />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent>
-              <DropdownMenuRadioGroup value={filter} onValueChange={(v) => setFilter(v as ShowStatus | 'all')}>
-                <DropdownMenuRadioItem value="all">All</DropdownMenuRadioItem>
-                {SHOW_STATUS_OPTIONS.map((opt) => (
-                  <DropdownMenuRadioItem key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </DropdownMenuRadioItem>
-                ))}
-              </DropdownMenuRadioGroup>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <ListControls>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="icon" aria-label="Filter shows">
+                  <MoreVertical />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <DropdownMenuRadioGroup value={filter} onValueChange={(v) => setFilter(v as ShowStatus | 'all')}>
+                  <DropdownMenuRadioItem value="all">All</DropdownMenuRadioItem>
+                  {SHOW_STATUS_OPTIONS.map((opt) => (
+                    <DropdownMenuRadioItem key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </DropdownMenuRadioItem>
+                  ))}
+                </DropdownMenuRadioGroup>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            <Button
+              variant="outline"
+              size="icon"
+              aria-label={viewMode === 'list' ? 'Switch to grid view' : 'Switch to list view'}
+              onClick={() => setViewMode(viewMode === 'list' ? 'grid' : 'list')}
+            >
+              {viewMode === 'list' ? <LayoutGrid /> : <List />}
+            </Button>
+          </ListControls>
 
           {isPending && <Spinner />}
           {!isPending && filtered.length === 0 && (
             <Message>Nothing here yet — head to Discover to start tracking a show.</Message>
           )}
 
-          {main.map(renderCard)}
+          {renderSection(main)}
 
           {staleWatching.length > 0 && (
             <>
               <SectionHeading>Haven't watched in a while</SectionHeading>
-              {staleWatching.map(renderCard)}
+              {renderSection(staleWatching)}
             </>
           )}
         </>
