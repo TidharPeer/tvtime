@@ -17,7 +17,7 @@ const DropdownMenuContent = React.forwardRef<
       ref={ref}
       sideOffset={sideOffset}
       className={cn(
-        'z-50 min-w-32 rounded-md border border-input bg-background p-1 text-sm shadow-md',
+        'z-50 min-w-32 rounded-md border border-input bg-popover p-1 text-sm text-popover-foreground shadow-md',
         className,
       )}
       {...props}
@@ -33,7 +33,7 @@ const DropdownMenuItem = React.forwardRef<
   <DropdownMenuPrimitive.Item
     ref={ref}
     className={cn(
-      'flex cursor-pointer select-none items-center rounded-sm px-2 py-1.5 outline-none transition-colors hover:bg-muted',
+      'flex cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-popover-foreground outline-none transition-colors hover:bg-muted',
       className,
     )}
     {...props}
@@ -68,7 +68,7 @@ const DropdownMenuRadioItem = React.forwardRef<
   <DropdownMenuPrimitive.RadioItem
     ref={ref}
     className={cn(
-      'relative flex cursor-pointer select-none items-center rounded-sm py-1.5 pl-7 pr-2 outline-none transition-colors hover:bg-muted data-[state=checked]:font-medium',
+      'relative flex cursor-pointer select-none items-center rounded-sm py-1.5 pl-7 pr-2 text-popover-foreground outline-none transition-colors hover:bg-muted data-[state=checked]:font-medium',
       className,
     )}
     {...props}

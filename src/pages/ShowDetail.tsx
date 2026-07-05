@@ -11,14 +11,20 @@ import { tmdbImageUrl } from '@/lib/tmdb'
 
 const Backdrop = styled.div<{ $src: string | null }>`
   aspect-ratio: 16 / 9;
-  background: ${({ theme, $src }) => ($src ? `center / cover no-repeat url(${$src})` : theme.colors.surfaceRaised)};
+  background-color: ${({ theme }) => theme.colors.surfaceRaised};
+  background-image: ${({ $src }) =>
+    $src ? `linear-gradient(to bottom, rgba(0, 0, 0, 0.6), transparent 40%), url(${$src})` : 'none'};
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
   display: flex;
   align-items: flex-start;
   padding: ${({ theme }) => theme.spacing(3)};
 `
 
 const BackButton = styled(Button)`
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.7);
+  color: ${({ theme }) => theme.colors.text};
 `
 
 const Content = styled.div`

@@ -61,7 +61,7 @@ function App() {
             <Route path="/login" element={<Login />} />
             <Route element={<AuthGate />}>
               <Route element={<ProtectedLayout />}>
-                <Route index element={<Navigate to="/discover" replace />} />
+                <Route index element={<Navigate to="/library" replace />} />
                 <Route path="discover" element={<Discover />} />
                 <Route path="show/:tmdbShowId" element={<ShowDetail />} />
                 <Route path="library" element={<Library />} />
