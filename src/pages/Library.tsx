@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { MoreVertical } from 'lucide-react'
+import { Coffee, MoreVertical } from 'lucide-react'
 import styled from 'styled-components'
 
 import { LibraryShowCard } from '@/components/LibraryShowCard'
@@ -14,6 +14,8 @@ import {
   DropdownMenuRadioItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { SUPPORT_URL } from '@/lib/env'
 import { getEffectiveStatus, groupAndSortUserShows, type EnrichedShow } from '@/lib/libraryGrouping'
 import { useEpisodeWatchStats } from '@/lib/queries/episodeWatches'
 import { useShowDetailsMany } from '@/lib/queries/tmdb'
@@ -49,8 +51,13 @@ const Message = styled.p`
 const HeaderActions = styled.div`
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   justify-content: flex-end;
   gap: ${({ theme }) => theme.spacing(2)};
+`
+
+const CoffeeButton = styled(Button)`
+  color: ${({ theme }) => theme.colors.text};
 `
 
 const SectionHeading = styled.h2`
@@ -129,6 +136,18 @@ export default function Library() {
           >
             Upcoming
           </Button>
+          {SUPPORT_URL && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <CoffeeButton variant="ghost" size="icon" asChild>
+                  <a href={SUPPORT_URL} target="_blank" rel="noopener noreferrer" aria-label="Buy me a Coffee">
+                    <Coffee />
+                  </a>
+                </CoffeeButton>
+              </TooltipTrigger>
+              <TooltipContent>Buy me a Coffee</TooltipContent>
+            </Tooltip>
+          )}
           <UserMenu />
         </HeaderActions>
       </Header>

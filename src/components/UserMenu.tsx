@@ -1,3 +1,4 @@
+import { Coffee } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import styled from 'styled-components'
 
@@ -11,6 +12,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { getGravatarUrl, getInitials } from '@/lib/avatar'
+import { SUPPORT_URL } from '@/lib/env'
 import { neon } from '@/lib/neon'
 
 const AvatarButton = styled.button`
@@ -45,6 +47,13 @@ export function UserMenu() {
       <DropdownMenuContent align="end">
         <DropdownMenuLabel>{user.email}</DropdownMenuLabel>
         <DropdownMenuSeparator />
+        {SUPPORT_URL && (
+          <DropdownMenuItem asChild>
+            <a href={SUPPORT_URL} target="_blank" rel="noopener noreferrer">
+              <Coffee className="mr-2 h-4 w-4" /> Buy me a Coffee
+            </a>
+          </DropdownMenuItem>
+        )}
         <DropdownMenuItem asChild>
           <Link to="/import">Import from TV Time</Link>
         </DropdownMenuItem>

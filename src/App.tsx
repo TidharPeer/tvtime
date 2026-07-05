@@ -6,6 +6,7 @@ import { ThemeProvider } from 'styled-components'
 
 import { AuthGate } from '@/components/AuthGate'
 import { ProtectedLayout } from '@/components/ProtectedLayout'
+import { TooltipProvider } from '@/components/ui/tooltip'
 import Discover from '@/pages/Discover'
 import Import from '@/pages/Import'
 import Library from '@/pages/Library'
@@ -56,21 +57,23 @@ function App() {
     >
       <ThemeProvider theme={theme}>
         <GlobalStyle />
-        <BrowserRouter>
-          <Routes>
-            <Route path="/login" element={<Login />} />
-            <Route element={<AuthGate />}>
-              <Route element={<ProtectedLayout />}>
-                <Route index element={<Navigate to="/library" replace />} />
-                <Route path="discover" element={<Discover />} />
-                <Route path="show/:tmdbShowId" element={<ShowDetail />} />
-                <Route path="library" element={<Library />} />
-                <Route path="import" element={<Import />} />
+        <TooltipProvider>
+          <BrowserRouter>
+            <Routes>
+              <Route path="/login" element={<Login />} />
+              <Route element={<AuthGate />}>
+                <Route element={<ProtectedLayout />}>
+                  <Route index element={<Navigate to="/library" replace />} />
+                  <Route path="discover" element={<Discover />} />
+                  <Route path="show/:tmdbShowId" element={<ShowDetail />} />
+                  <Route path="library" element={<Library />} />
+                  <Route path="import" element={<Import />} />
+                </Route>
               </Route>
-            </Route>
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </BrowserRouter>
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </BrowserRouter>
+        </TooltipProvider>
       </ThemeProvider>
     </PersistQueryClientProvider>
   )
