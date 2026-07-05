@@ -18,17 +18,36 @@ const Poster = styled.div<{ $src: string | null }>`
   background: ${({ theme, $src }) => ($src ? `center / cover no-repeat url(${$src})` : theme.colors.surfaceRaised)};
 `
 
-const StatusBar = styled.div<{ $status: ShowStatus }>`
+const BarTrack = styled.div`
   height: 4px;
   border-radius: ${({ theme }) => theme.radius.pill};
-  background: ${({ theme, $status }) => statusColor($status, theme)};
+  background: ${({ theme }) => theme.colors.surfaceRaised};
+  overflow: hidden;
 `
 
-export function LibraryGridCard({ show, status }: { show: TmdbShowDetails; status: ShowStatus }) {
+const BarFill = styled.div<{ $percent: number; $status: ShowStatus }>`
+  height: 100%;
+  width: ${({ $percent }) => $percent}%;
+  background: ${({ theme, $status }) => statusColor($status, theme)};
+  transition: width 0.2s ease;
+`
+
+export function LibraryGridCard({
+  show,
+  status,
+  progress,
+}: {
+  show: TmdbShowDetails
+  status: ShowStatus
+  /** 0-100, aired episodes watched so far. */
+  progress: number
+}) {
   return (
     <Card to={`/show/${show.id}`}>
       <Poster $src={tmdbImageUrl(show.poster_path, 'w342')} />
-      <StatusBar $status={status} />
+      <BarTrack>
+        <BarFill $percent={progress} $status={status} />
+      </BarTrack>
     </Card>
   )
 }

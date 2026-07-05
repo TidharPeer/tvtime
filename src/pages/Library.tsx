@@ -123,7 +123,9 @@ export default function Library() {
 
   const renderGridCard = (entry: EnrichedShow) => {
     if (!entry.show) return null
-    return <LibraryGridCard key={entry.userShow.id} show={entry.show} status={entry.effectiveStatus} />
+    const aired = getAiredEpisodeCount(entry.show)
+    const progress = aired > 0 ? Math.min(100, Math.round((entry.watchedCount / aired) * 100)) : 0
+    return <LibraryGridCard key={entry.userShow.id} show={entry.show} status={entry.effectiveStatus} progress={progress} />
   }
 
   const renderSection = (entries: EnrichedShow[]) =>
