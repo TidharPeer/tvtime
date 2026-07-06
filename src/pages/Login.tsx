@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import styled from 'styled-components'
 
 import { Button } from '@/components/ui/button'
@@ -74,6 +75,111 @@ function GoogleIcon() {
   )
 }
 
+function PasswordAuthForm() {
+  const navigate = useNavigate()
+  const { data: session } = neon.auth.useSession()
+  const [mode, setMode] = useState<'signin' | 'signup'>('signin')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [name, setName] = useState('')
+  const [status, setStatus] = useState<'idle' | 'submitting' | 'error' | 'check-email'>('idle')
+  const [errorMessage, setErrorMessage] = useState('')
+
+  // signIn.email/signUp.email resolve within the SPA with no page
+  // navigation (unlike Google's OAuth redirect or magic link's "check your
+  // email" message) — so navigation has to react to the session actually
+  // becoming available, not fire right after the call resolves. The
+  // session atom's refresh is deliberately deferred internally, so
+  // navigating immediately would hit AuthGate before it's updated and
+  // bounce straight back to /login.
+  useEffect(() => {
+    if (session?.session) navigate('/', { replace: true })
+  }, [session?.session, navigate])
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    setStatus('submitting')
+    if (mode === 'signup') {
+      const { data, error } = await neon.auth.signUp.email({ email, password, name })
+      if (error) {
+        setErrorMessage(error.message ?? "Couldn't create your account.")
+        setStatus('error')
+      } else if (!data?.token) {
+        // No error but no session either — email verification is required
+        // server-side before sign-in is allowed.
+        setStatus('check-email')
+      }
+    } else {
+      const { error } = await neon.auth.signIn.email({ email, password })
+      if (error) {
+        setErrorMessage(error.message ?? "Couldn't sign in.")
+        setStatus('error')
+      }
+    }
+  }
+
+  if (status === 'check-email') {
+    return <Message>Check {email} to verify your account, then sign in.</Message>
+  }
+
+  return (
+    <Form onSubmit={handleSubmit}>
+      {mode === 'signup' && (
+        <Input
+          placeholder="Your name"
+          autoComplete="name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          required
+          disabled={status === 'submitting'}
+        />
+      )}
+      <Input
+        type="email"
+        placeholder="you@example.com"
+        autoComplete="email"
+        name="email"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        required
+        disabled={status === 'submitting'}
+      />
+      <Input
+        type="password"
+        placeholder="Password"
+        autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}
+        name="password"
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+        required
+        minLength={8}
+        disabled={status === 'submitting'}
+      />
+      <Button type="submit" disabled={status === 'submitting'}>
+        {status === 'submitting'
+          ? mode === 'signup'
+            ? 'Creating account…'
+            : 'Signing in…'
+          : mode === 'signup'
+            ? 'Create account'
+            : 'Sign in'}
+      </Button>
+      {status === 'error' && <Message $error>{errorMessage}</Message>}
+      <Button
+        type="button"
+        variant="link"
+        onClick={() => {
+          setMode((m) => (m === 'signin' ? 'signup' : 'signin'))
+          setStatus('idle')
+          setErrorMessage('')
+        }}
+      >
+        {mode === 'signin' ? "Don't have an account? Sign up" : 'Already have an account? Sign in'}
+      </Button>
+    </Form>
+  )
+}
+
 export default function Login() {
   const [email, setEmail] = useState('')
   const [status, setStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle')
@@ -134,6 +240,8 @@ export default function Login() {
             </Button>
             {status === 'error' && <Message $error>{errorMessage}</Message>}
           </Form>
+          <Divider>or</Divider>
+          <PasswordAuthForm />
         </>
       )}
     </Wrap>
