@@ -6,6 +6,11 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { neon } from '@/lib/neon'
 
+// Three sign-in options at once read as too many/confusing — hiding magic
+// link for now (Google + email/password felt like enough). Flip back to
+// true to bring it back; the form/handler are left in place, just unrendered.
+const SHOW_MAGIC_LINK = false
+
 const Wrap = styled.div`
   display: flex;
   flex-direction: column;
@@ -225,21 +230,25 @@ export default function Login() {
             <GoogleIcon />
             Continue with Google
           </Button>
-          <Divider>or</Divider>
-          <Form onSubmit={handleSubmit}>
-            <Input
-              type="email"
-              required
-              placeholder="you@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              disabled={status === 'sending'}
-            />
-            <Button type="submit" disabled={status === 'sending'}>
-              {status === 'sending' ? 'Sending…' : 'Send magic link'}
-            </Button>
-            {status === 'error' && <Message $error>{errorMessage}</Message>}
-          </Form>
+          {SHOW_MAGIC_LINK && (
+            <>
+              <Divider>or</Divider>
+              <Form onSubmit={handleSubmit}>
+                <Input
+                  type="email"
+                  required
+                  placeholder="you@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  disabled={status === 'sending'}
+                />
+                <Button type="submit" disabled={status === 'sending'}>
+                  {status === 'sending' ? 'Sending…' : 'Send magic link'}
+                </Button>
+                {status === 'error' && <Message $error>{errorMessage}</Message>}
+              </Form>
+            </>
+          )}
           <Divider>or</Divider>
           <PasswordAuthForm />
         </>
