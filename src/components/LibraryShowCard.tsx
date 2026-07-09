@@ -2,6 +2,7 @@ import { Check, ChevronRight } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import styled from 'styled-components'
 
+import { Spinner } from '@/components/Spinner'
 import { StatusBadge } from '@/components/StatusBadge'
 import { useSetEpisodeWatched } from '@/lib/queries/episodeWatches'
 import { getNextEpisodeInfo } from '@/lib/showProgress'
@@ -116,6 +117,10 @@ const MarkWatchedButton = styled.button`
   }
 `
 
+const ButtonSpinner = styled(Spinner)`
+  margin: 0;
+`
+
 export function LibraryShowCard({
   show,
   status,
@@ -168,7 +173,7 @@ export function LibraryShowCard({
             })
           }
         >
-          <Check />
+          {isPending ? <ButtonSpinner $size={18} /> : <Check />}
         </MarkWatchedButton>
       )}
     </Card>
